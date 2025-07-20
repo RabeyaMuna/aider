@@ -11,6 +11,7 @@ from collections import Counter, defaultdict, namedtuple
 from importlib import resources
 from pathlib import Path
 
+import tree_sitter
 from diskcache import Cache
 from grep_ast import TreeContext, filename_to_lang
 from pygments.lexers import guess_lexer_for_filename
@@ -286,7 +287,10 @@ class RepoMap:
 
         # Run the tags queries
         query = language.query(query_scm)
-        captures = query.captures(tree.root_node)
+        if sys.version_info >= (3, 10):
+            captures = tree_sitter.QueryCursor(query).captures(tree.root_node)
+        else:
+            captures = query.captures(tree.root_node)
 
         saw = set()
         if USING_TSL_PACK:
