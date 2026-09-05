@@ -227,6 +227,12 @@ class ModelInfoManager:
 
         return dict()
 
+    # Known vision models that support image input
+    VISION_MODELS = frozenset([
+        "gpt-4-vision-preview",
+        "gpt-4-1106-vision-preview",
+    ])
+
     def get_model_info(self, model):
         cached_info = self.get_model_from_cached_json_db(model)
 
@@ -251,6 +257,11 @@ class ModelInfoManager:
             openrouter_info = self.fetch_openrouter_model_info(model)
             if openrouter_info:
                 return openrouter_info
+
+        # Add supports_vision for known vision models
+        if model in self.VISION_MODELS:
+            cached_info = cached_info.copy() if cached_info else {}
+            cached_info["supports_vision"] = True
 
         return cached_info
 
