@@ -17,7 +17,7 @@ warnings.simplefilter("ignore", category=FutureWarning)
 
 def install_help_extra(io):
     pip_install_cmd = [
-        "aider-chat[help]",
+        "aider[help]",
         "--extra-index-url",
         "https://download.pytorch.org/whl/cpu",
     ]
@@ -149,7 +149,7 @@ class Help:
 
 # Relevant docs:
 
-"""  # noqa: E231
+"""
 
         for node in nodes:
             url = node.metadata.get("url", "")

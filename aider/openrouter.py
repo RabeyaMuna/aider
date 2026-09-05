@@ -21,7 +21,7 @@ def _cost_per_token(val: str | None) -> float | None:
     if val in (None, "", "0"):
         return 0.0 if val == "0" else None
     try:
-        return float(val)
+        return float(val) / 1_000_000
     except Exception:  # noqa: BLE001
         return None
 

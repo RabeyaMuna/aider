@@ -10,13 +10,12 @@ import time
 from dataclasses import dataclass, fields
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
 
 import json5
 import yaml
 from PIL import Image
 
-from aider.dump import dump  # noqa: F401
+from aider.dump import dump
 from aider.llm import litellm
 from aider.openrouter import OpenRouterModelManager
 from aider.sendchat import ensure_alternating_roles, sanity_check_messages
@@ -109,25 +108,25 @@ class ModelSettings:
     # Model class needs to have each of these as well
     name: str
     edit_format: str = "whole"
-    weak_model_name: Optional[str] = None
+    weak_model_name: str | None = None
     use_repo_map: bool = False
     send_undo_reply: bool = False
     lazy: bool = False
     overeager: bool = False
     reminder: str = "user"
     examples_as_sys_msg: bool = False
-    extra_params: Optional[dict] = None
+    extra_params: dict | None = None
     cache_control: bool = False
     caches_by_default: bool = False
     use_system_prompt: bool = True
-    use_temperature: Union[bool, float] = True
+    use_temperature: bool | float = True
     streaming: bool = True
-    editor_model_name: Optional[str] = None
-    editor_edit_format: Optional[str] = None
-    reasoning_tag: Optional[str] = None
-    remove_reasoning: Optional[str] = None  # Deprecated alias for reasoning_tag
-    system_prompt_prefix: Optional[str] = None
-    accepts_settings: Optional[list] = None
+    editor_model_name: str | None = None
+    editor_edit_format: str | None = None
+    reasoning_tag: str | None = None
+    remove_reasoning: str | None = None  # Deprecated alias for reasoning_tag
+    system_prompt_prefix: str | None = None
+    accepts_settings: list | None = None
 
 
 # Load model settings from package resource
@@ -155,6 +154,23 @@ class ModelInfoManager:
 
         # Manager for the cached OpenRouter model database
         self.openrouter_manager = OpenRouterModelManager()
+
+    def _load_local_model_metadata(self):
+        """Load model metadata from the bundled model-metadata.json resource file."""
+        if self.local_model_metadata:
+            return  # Already loaded
+
+        try:
+            resource_metadata = importlib.resources.files("aider.resources").joinpath(
+                "model-metadata.json"
+            )
+            if resource_metadata.exists():
+                data = json5.loads(resource_metadata.read_text())
+                if data:
+                    self.local_model_metadata.update(data)
+        except Exception:
+            pass
+
 
     def set_verify_ssl(self, verify_ssl):
         self.verify_ssl = verify_ssl
@@ -201,6 +217,9 @@ class ModelInfoManager:
                 pass
 
     def get_model_from_cached_json_db(self, model):
+        # Load local model metadata if not already loaded
+        self._load_local_model_metadata()
+
         data = self.local_model_metadata.get(model)
         if data:
             return data
