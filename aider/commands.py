@@ -526,19 +526,17 @@ class Commands:
         self.io.tool_output(f"${total_cost:7.4f} {fmt(total)} tokens total")  # noqa: E231
 
         limit = self.coder.main_model.info.get("max_input_tokens") or 0
-        if not limit:
-            return
 
         remaining = limit - total
         if remaining > 1024:
             self.io.tool_output(f"{cost_pad}{fmt(remaining)} tokens remaining in context window")
         elif remaining > 0:
-            self.io.tool_error(
+            self.io.tool_output(
                 f"{cost_pad}{fmt(remaining)} tokens remaining in context window (use /drop or"
                 " /clear to make space)"
             )
         else:
-            self.io.tool_error(
+            self.io.tool_output(
                 f"{cost_pad}{fmt(remaining)} tokens remaining, window exhausted (use /drop or"
                 " /clear to make space)"
             )
@@ -1339,12 +1337,15 @@ class Commands:
                 self.io.tool_error(f"Not a file or directory: {abs_path}")
 
     def _add_read_only_file(self, abs_path, original_name):
-        if is_image_file(original_name) and not self.coder.main_model.info.get("supports_vision"):
-            self.io.tool_error(
-                f"Cannot add image file {original_name} as the"
-                f" {self.coder.main_model.name} does not support images."
-            )
-            return
+        if is_image_file(original_name):
+            supports_vision = self.coder.main_model.info.get("supports_vision")
+            # Assume vision support if the model name contains "vision"
+            if not supports_vision and "vision" not in self.coder.main_model.name.lower():
+                self.io.tool_error(
+                    f"Cannot add image file {original_name} as the"
+                    f" {self.coder.main_model.name} does not support images."
+                )
+                return
 
         if abs_path in self.coder.abs_read_only_fnames:
             self.io.tool_error(f"{original_name} is already in the chat as a read-only file")

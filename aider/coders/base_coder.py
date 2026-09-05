@@ -816,6 +816,9 @@ class Coder:
 
     def get_images_message(self, fnames):
         supports_images = self.main_model.info.get("supports_vision")
+        # Assume vision support if the model name contains "vision"
+        if not supports_images and "vision" in self.main_model.name.lower():
+            supports_images = True
         supports_pdfs = self.main_model.info.get("supports_pdf_input") or self.main_model.info.get(
             "max_pdf_size_mb"
         )

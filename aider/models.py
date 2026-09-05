@@ -157,6 +157,25 @@ class ModelInfoManager:
         # Manager for the cached OpenRouter model database
         self.openrouter_manager = OpenRouterModelManager()
 
+        # Load bundled model metadata
+        self._load_bundled_metadata()
+
+    def _load_bundled_metadata(self):
+        """Load model metadata from the bundled model-metadata.json file."""
+        try:
+            resource = importlib.resources.files("aider.resources").joinpath("model-metadata.json")
+            # Use importlib.resources.as_file to get a valid path for reading
+            with importlib.resources.as_file(resource) as path:
+                if path.exists():
+                    data = path.read_text()
+                    if data.strip():
+                        model_def = json5.loads(data)
+                        if model_def:
+                            self.local_model_metadata.update(model_def)
+        except Exception:
+            # If loading fails, continue without bundled metadata
+            pass
+
     def set_verify_ssl(self, verify_ssl):
         self.verify_ssl = verify_ssl
         if hasattr(self, "openrouter_manager"):
@@ -205,6 +224,13 @@ class ModelInfoManager:
         data = self.local_model_metadata.get(model)
         if data:
             return data
+
+        # Check for provider-prefixed keys in local_model_metadata (e.g., "openai/gpt-4-32k")
+        pieces = model.split("/")
+        if len(pieces) == 2:
+            data = self.local_model_metadata.get(pieces[1])
+            if data and data.get("litellm_provider") == pieces[0]:
+                return data
 
         # Ensure cache is loaded before checking content
         self._load_cache()
