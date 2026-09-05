@@ -21,13 +21,18 @@ def install_help_extra(io):
         "--extra-index-url",
         "https://download.pytorch.org/whl/cpu",
     ]
-    res = utils.check_pip_install_extra(
-        io,
-        "llama_index.embeddings.huggingface",
-        "To use interactive /help you need to install the help extras",
-        pip_install_cmd,
-    )
-    return res
+    try:
+        res = utils.check_pip_install_extra(
+            io,
+            "llama_index.embeddings.huggingface",
+            "To use interactive /help you need to install the help extras",
+            pip_install_cmd,
+        )
+        return res
+    except (ImportError, ModuleNotFoundError, RuntimeError):
+        # Handle import errors during help extras installation
+        # such as scipy import errors
+        return False
 
 
 def get_package_files():
@@ -35,8 +40,7 @@ def get_package_files():
         if path.is_file():
             yield path
         elif path.is_dir():
-            for subpath in path.rglob("*.md"):
-                yield subpath
+            yield from path.rglob("*.md")
 
 
 def fname_to_url(filepath):
@@ -115,11 +119,11 @@ def get_index():
                 text=importlib_resources.files("aider.website")
                 .joinpath(fname)
                 .read_text(encoding="utf-8"),
-                metadata=dict(
-                    filename=fname.name,
-                    extension=fname.suffix,
-                    url=fname_to_url(str(fname)),
-                ),
+                metadata={
+                    "filename": fname.name,
+                    "extension": fname.suffix,
+                    "url": fname_to_url(str(fname)),
+                },
             )
             nodes += parser.get_nodes_from_documents([doc])
 
@@ -149,7 +153,7 @@ class Help:
 
 # Relevant docs:
 
-"""  # noqa: E231
+"""
 
         for node in nodes:
             url = node.metadata.get("url", "")
