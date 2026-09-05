@@ -23,9 +23,9 @@ from aider.utils import Spinner
 
 # tree_sitter is throwing a FutureWarning
 warnings.simplefilter("ignore", category=FutureWarning)
-from grep_ast.tsl import USING_TSL_PACK, get_language, get_parser  # noqa: E402
+from grep_ast.tsl import USING_TSL_PACK, get_language, get_parser
 
-Tag = namedtuple("Tag", "rel_fname fname line name kind".split())
+Tag = namedtuple("Tag", ["rel_fname", "fname", "line", "name", "kind"])
 
 
 SQLITE_ERRORS = (sqlite3.OperationalError, sqlite3.DatabaseError, OSError)
@@ -175,7 +175,7 @@ class RepoMap:
         """Handle SQLite errors by trying to recreate cache, falling back to dict if needed"""
 
         if self.verbose and original_error:
-            self.io.tool_warning(f"Tags cache error: {str(original_error)}")
+            self.io.tool_warning(f"Tags cache error: {original_error!s}")
 
         if isinstance(getattr(self, "TAGS_CACHE", None), dict):
             return
@@ -207,7 +207,7 @@ class RepoMap:
                 f"Unable to use tags cache at {path}, falling back to memory cache"
             )
             if self.verbose:
-                self.io.tool_warning(f"Cache recreation error: {str(e)}")
+                self.io.tool_warning(f"Cache recreation error: {e!s}")
 
         self.TAGS_CACHE = dict()
 
@@ -283,16 +283,27 @@ class RepoMap:
         tree = parser.parse(bytes(code, "utf-8"))
 
         # Run the tags queries
-        query = language.query(query_scm)
-        captures = query.captures(tree.root_node)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            query = language.query(query_scm)
+
+        # Use QueryCursor for tree-sitter 0.25+
+        from tree_sitter import QueryCursor
+        cursor = QueryCursor(query)
+        matches = list(cursor.matches(tree.root_node))
 
         saw = set()
         if USING_TSL_PACK:
             all_nodes = []
-            for tag, nodes in captures.items():
-                all_nodes += [(node, tag) for node in nodes]
+            for match_id, captures_dict in matches:
+                for tag, nodes in captures_dict.items():
+                    all_nodes += [(node, tag) for node in nodes]
         else:
-            all_nodes = list(captures)
+            all_nodes = []
+            for match_id, captures_dict in matches:
+                for tag, nodes in captures_dict.items():
+                    all_nodes += [(node, tag) for node in nodes]
 
         for node, tag in all_nodes:
             if tag.startswith("name.definition."):

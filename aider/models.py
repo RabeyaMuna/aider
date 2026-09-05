@@ -15,7 +15,7 @@ import json5
 import yaml
 from PIL import Image
 
-from aider.dump import dump  # noqa: F401
+from aider.dump import dump
 from aider.llm import litellm
 from aider.sendchat import ensure_alternating_roles, sanity_check_messages
 from aider.utils import check_pip_install_extra
@@ -176,7 +176,9 @@ class ModelInfoManager:
             import requests
 
             # Respect the --no-verify-ssl switch
-            response = requests.get(self.MODEL_INFO_URL, timeout=5, verify=self.verify_ssl)
+            response = requests.get(
+                self.MODEL_INFO_URL, timeout=5, verify=self.verify_ssl
+            )
             if response.status_code == 200:
                 self.content = response.json()
                 try:
@@ -238,7 +240,6 @@ class ModelInfoManager:
 
         return cached_info
 
-
     def fetch_openrouter_model_info(self, model):
         """
         Fetch model info by scraping the openrouter model page.
@@ -246,29 +247,45 @@ class ModelInfoManager:
         Example: openrouter/qwen/qwen-2.5-72b-instruct:free
         Returns a dict with keys: max_tokens, max_input_tokens, max_output_tokens, input_cost_per_token, output_cost_per_token.
         """
-        url_part = model[len("openrouter/"):]
+        url_part = model[len("openrouter/") :]
         url = "https://openrouter.ai/" + url_part
         try:
             import requests
+
             response = requests.get(url, timeout=5, verify=self.verify_ssl)
             if response.status_code != 200:
                 return {}
             html = response.text
             import re
-            if re.search(rf'The model\s*.*{re.escape(url_part)}.* is not available', html, re.IGNORECASE):
+
+            if re.search(
+                rf"The model\s*.*{re.escape(url_part)}.* is not available",
+                html,
+                re.IGNORECASE,
+            ):
                 print(f"\033[91mError: Model '{url_part}' is not available\033[0m")
                 return {}
-            text = re.sub(r'<[^>]+>', ' ', html)
+            text = re.sub(r"<[^>]+>", " ", html)
             context_match = re.search(r"([\d,]+)\s*context", text)
             if context_match:
                 context_str = context_match.group(1).replace(",", "")
                 context_size = int(context_str)
             else:
                 context_size = None
-            input_cost_match = re.search(r"\$\s*([\d.]+)\s*/M input tokens", text, re.IGNORECASE)
-            output_cost_match = re.search(r"\$\s*([\d.]+)\s*/M output tokens", text, re.IGNORECASE)
-            input_cost = float(input_cost_match.group(1)) / 1000000 if input_cost_match else None
-            output_cost = float(output_cost_match.group(1)) / 1000000 if output_cost_match else None
+            input_cost_match = re.search(
+                r"\$\s*([\d.]+)\s*/M input tokens", text, re.IGNORECASE
+            )
+            output_cost_match = re.search(
+                r"\$\s*([\d.]+)\s*/M output tokens", text, re.IGNORECASE
+            )
+            input_cost = (
+                float(input_cost_match.group(1)) / 1000000 if input_cost_match else None
+            )
+            output_cost = (
+                float(output_cost_match.group(1)) / 1000000
+                if output_cost_match
+                else None
+            )
             if context_size is None or input_cost is None or output_cost is None:
                 return {}
             params = {
@@ -283,12 +300,34 @@ class ModelInfoManager:
             print("Error fetching openrouter info:", str(e))
             return {}
 
+
 model_info_manager = ModelInfoManager()
+
+# Load bundled model metadata as fallback when other sources fail
+try:
+    with importlib.resources.open_text("aider.resources", "model-metadata.json") as f:
+        bundled_metadata = json5.load(f)
+        # Merge bundled metadata with local_model_metadata without overriding
+        # user-provided values (local_model_metadata is populated from user files)
+        for model, info in bundled_metadata.items():
+            if model not in model_info_manager.local_model_metadata:
+                model_info_manager.local_model_metadata[model] = info
+except FileNotFoundError:
+    # Bundled metadata file not found, skip (shouldn't happen in normal installation)
+    pass
+except Exception:
+    # Other errors loading bundled metadata, skip gracefully
+    pass
 
 
 class Model(ModelSettings):
     def __init__(
-        self, model, weak_model=None, editor_model=None, editor_edit_format=None, verbose=False
+        self,
+        model,
+        weak_model=None,
+        editor_model=None,
+        editor_edit_format=None,
+        verbose=False,
     ):
         # Map any alias to its canonical name
         model = MODEL_ALIASES.get(model, model)
@@ -374,7 +413,9 @@ class Model(ModelSettings):
 
             # Deep merge the extra_params dicts
             for key, value in self.extra_model_settings.extra_params.items():
-                if isinstance(value, dict) and isinstance(self.extra_params.get(key), dict):
+                if isinstance(value, dict) and isinstance(
+                    self.extra_params.get(key), dict
+                ):
                     # For nested dicts, merge recursively
                     self.extra_params[key] = {**self.extra_params[key], **value}
                 else:
@@ -678,7 +719,8 @@ class Model(ModelSettings):
 
         # If missing AWS credential keys but AWS_PROFILE is set, consider AWS credentials valid
         if res["missing_keys"] and any(
-            key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"] for key in res["missing_keys"]
+            key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
+            for key in res["missing_keys"]
         ):
             if model.startswith("bedrock/") or model.startswith("us.anthropic."):
                 if os.environ.get("AWS_PROFILE"):
@@ -776,9 +818,14 @@ class Model(ModelSettings):
             if self.name.startswith("openrouter/"):
                 if "extra_body" not in self.extra_params:
                     self.extra_params["extra_body"] = {}
-                self.extra_params["extra_body"]["reasoning"] = {"max_tokens": num_tokens}
+                self.extra_params["extra_body"]["reasoning"] = {
+                    "max_tokens": num_tokens
+                }
             else:
-                self.extra_params["thinking"] = {"type": "enabled", "budget_tokens": num_tokens}
+                self.extra_params["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": num_tokens,
+                }
 
     def get_raw_thinking_tokens(self):
         """Get formatted thinking token budget if available"""
@@ -795,7 +842,8 @@ class Model(ModelSettings):
                     budget = self.extra_params["extra_body"]["reasoning"]["max_tokens"]
             # Check for standard thinking format
             elif (
-                "thinking" in self.extra_params and "budget_tokens" in self.extra_params["thinking"]
+                "thinking" in self.extra_params
+                and "budget_tokens" in self.extra_params["thinking"]
             ):
                 budget = self.extra_params["thinking"]["budget_tokens"]
 
@@ -872,7 +920,10 @@ class Model(ModelSettings):
         if functions is not None:
             function = functions[0]
             kwargs["tools"] = [dict(type="function", function=function)]
-            kwargs["tool_choice"] = {"type": "function", "function": {"name": function["name"]}}
+            kwargs["tool_choice"] = {
+                "type": "function",
+                "function": {"name": function["name"]},
+            }
         if self.extra_params:
             kwargs.update(self.extra_params)
         if self.is_ollama() and "num_ctx" not in kwargs:
@@ -909,7 +960,11 @@ class Model(ModelSettings):
                 }
 
                 _hash, response = self.send_completion(**kwargs)
-                if not response or not hasattr(response, "choices") or not response.choices:
+                if (
+                    not response
+                    or not hasattr(response, "choices")
+                    or not response.choices
+                ):
                     return None
                 res = response.choices[0].message.content
                 from aider.reasoning_tags import remove_reasoning_content
@@ -951,14 +1006,17 @@ def register_models(model_settings_fnames):
             for model_settings_dict in model_settings_list:
                 model_settings = ModelSettings(**model_settings_dict)
                 existing_model_settings = next(
-                    (ms for ms in MODEL_SETTINGS if ms.name == model_settings.name), None
+                    (ms for ms in MODEL_SETTINGS if ms.name == model_settings.name),
+                    None,
                 )
 
                 if existing_model_settings:
                     MODEL_SETTINGS.remove(existing_model_settings)
                 MODEL_SETTINGS.append(model_settings)
         except Exception as e:
-            raise Exception(f"Error loading model settings from {model_settings_fname}: {e}")
+            raise Exception(
+                f"Error loading model settings from {model_settings_fname}: {e}"
+            )
         files_loaded.append(model_settings_fname)
 
     return files_loaded
@@ -1035,7 +1093,9 @@ def sanity_check_model(io, model):
 
     elif not model.keys_in_environment:
         show = True
-        io.tool_warning(f"Warning for {model}: Unknown which environment variables are required.")
+        io.tool_warning(
+            f"Warning for {model}: Unknown which environment variables are required."
+        )
 
     # Check for model-specific dependencies
     check_for_dependencies(io, model.name)
