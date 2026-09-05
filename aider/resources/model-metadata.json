@@ -167,6 +167,14 @@
         "supports_system_messages": true,
         "supports_tool_choice": true
     },
+    "gpt-4-vision-preview": {
+        "max_tokens": 4096,
+        "max_input_tokens": 128000,
+        "max_output_tokens": 4096,
+        "litellm_provider": "openai",
+        "mode": "chat",
+        "supports_vision": true
+    },
     "gemini/gemini-2.5-pro-exp-03-25": {
         "max_tokens": 8192,
         "max_input_tokens": 1048576,
