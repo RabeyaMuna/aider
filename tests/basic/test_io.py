@@ -16,14 +16,15 @@ class TestInputOutput(unittest.TestCase):
     def test_line_endings_validation(self):
         # Test valid line endings
         for ending in ["platform", "lf", "crlf"]:
-            io = InputOutput(line_endings=ending)
+            io = InputOutput(line_endings=ending, input_history_file=".history")
             self.assertEqual(
-                io.newline, None if ending == "platform" else "\n" if ending == "lf" else "\r\n"
+                io.newline,
+                None if ending == "platform" else "\n" if ending == "lf" else "\r\n",
             )
 
         # Test invalid line endings
         with self.assertRaises(ValueError) as cm:
-            io = InputOutput(line_endings="invalid")
+            io = InputOutput(line_endings="invalid", input_history_file=".history")
         self.assertIn("Invalid line_endings value: invalid", str(cm.exception))
         # Check each valid option is in the error message
         self.assertIn("platform", str(cm.exception))
@@ -32,7 +33,7 @@ class TestInputOutput(unittest.TestCase):
 
     def test_no_color_environment_variable(self):
         with patch.dict(os.environ, {"NO_COLOR": "1"}):
-            io = InputOutput(fancy_input=False)
+            io = InputOutput(fancy_input=False, input_history_file=".history")
             self.assertFalse(io.pretty)
 
     def test_color_initialization(self):
@@ -44,6 +45,7 @@ class TestInputOutput(unittest.TestCase):
             tool_warning_color="FFA500",
             assistant_output_color="0088ff",
             pretty=True,
+            input_history_file=".history",
         )
 
         # Check that # was added to hex colors
@@ -53,20 +55,30 @@ class TestInputOutput(unittest.TestCase):
         self.assertEqual(io.assistant_output_color, "#0088ff")
 
         # Test with named colors (should be unchanged)
-        io = InputOutput(user_input_color="blue", tool_error_color="red", pretty=True)
+        io = InputOutput(
+            user_input_color="blue",
+            tool_error_color="red",
+            pretty=True,
+            input_history_file=".history",
+        )
 
         self.assertEqual(io.user_input_color, "blue")
         self.assertEqual(io.tool_error_color, "red")
 
         # Test with pretty=False (should not modify colors)
-        io = InputOutput(user_input_color="00cc00", tool_error_color="FF2222", pretty=False)
+        io = InputOutput(
+            user_input_color="00cc00",
+            tool_error_color="FF2222",
+            pretty=False,
+            input_history_file=".history",
+        )
 
         self.assertIsNone(io.user_input_color)
         self.assertIsNone(io.tool_error_color)
 
     def test_dumb_terminal(self):
         with patch.dict(os.environ, {"TERM": "dumb"}):
-            io = InputOutput(fancy_input=True)
+            io = InputOutput(fancy_input=True, input_history_file=".history")
             self.assertTrue(io.is_dumb_terminal)
             self.assertFalse(io.pretty)
             self.assertIsNone(io.prompt_session)
@@ -76,7 +88,11 @@ class TestInputOutput(unittest.TestCase):
         commands = MagicMock()
         commands.get_commands.return_value = ["/help", "/add", "/drop"]
         commands.matching_commands.side_effect = lambda inp: (
-            [cmd for cmd in commands.get_commands() if cmd.startswith(inp.strip().split()[0])],
+            [
+                cmd
+                for cmd in commands.get_commands()
+                if cmd.startswith(inp.strip().split()[0])
+            ],
             inp.strip().split()[0],
             " ".join(inp.strip().split()[1:]),
         )
@@ -132,7 +148,9 @@ class TestInputOutput(unittest.TestCase):
         rel_fnames = ["non_existent_file.txt"]
         addable_rel_fnames = []
         commands = None
-        autocompleter = AutoCompleter(root, rel_fnames, addable_rel_fnames, commands, "utf-8")
+        autocompleter = AutoCompleter(
+            root, rel_fnames, addable_rel_fnames, commands, "utf-8"
+        )
         self.assertEqual(autocompleter.words, set(rel_fnames))
 
     def test_autocompleter_with_unicode_file(self):
@@ -142,26 +160,38 @@ class TestInputOutput(unittest.TestCase):
             rel_fnames = [fname]
             addable_rel_fnames = []
             commands = None
-            autocompleter = AutoCompleter(root, rel_fnames, addable_rel_fnames, commands, "utf-8")
+            autocompleter = AutoCompleter(
+                root, rel_fnames, addable_rel_fnames, commands, "utf-8"
+            )
             self.assertEqual(autocompleter.words, set(rel_fnames))
 
             Path(fname).write_text("def hello(): pass\n")
-            autocompleter = AutoCompleter(root, rel_fnames, addable_rel_fnames, commands, "utf-8")
+            autocompleter = AutoCompleter(
+                root, rel_fnames, addable_rel_fnames, commands, "utf-8"
+            )
             autocompleter.tokenize()
             dump(autocompleter.words)
-            self.assertEqual(autocompleter.words, set(rel_fnames + [("hello", "`hello`")]))
+            self.assertEqual(
+                autocompleter.words, set(rel_fnames + [("hello", "`hello`")])
+            )
 
             encoding = "utf-16"
-            some_content_which_will_error_if_read_with_encoding_utf8 = "ÅÍÎÏ".encode(encoding)
+            some_content_which_will_error_if_read_with_encoding_utf8 = "ÅÍÎÏ".encode(
+                encoding
+            )
             with open(fname, "wb") as f:
                 f.write(some_content_which_will_error_if_read_with_encoding_utf8)
 
-            autocompleter = AutoCompleter(root, rel_fnames, addable_rel_fnames, commands, "utf-8")
+            autocompleter = AutoCompleter(
+                root, rel_fnames, addable_rel_fnames, commands, "utf-8"
+            )
             self.assertEqual(autocompleter.words, set(rel_fnames))
 
     @patch("builtins.input", return_value="test input")
     def test_get_input_is_a_directory_error(self, mock_input):
-        io = InputOutput(pretty=False, fancy_input=False)  # Windows tests throw UnicodeDecodeError
+        io = InputOutput(
+            pretty=False, fancy_input=False, input_history_file=".history"
+        )  # Windows tests throw UnicodeDecodeError
         root = "/"
         rel_fnames = ["existing_file.txt"]
         addable_rel_fnames = ["new_file.txt"]
@@ -175,7 +205,7 @@ class TestInputOutput(unittest.TestCase):
 
     @patch("builtins.input")
     def test_confirm_ask_explicit_yes_required(self, mock_input):
-        io = InputOutput(pretty=False, fancy_input=False)
+        io = InputOutput(pretty=False, fancy_input=False, input_history_file=".history")
 
         # Test case 1: explicit_yes_required=True, self.yes=True
         io.yes = True
@@ -207,7 +237,7 @@ class TestInputOutput(unittest.TestCase):
 
     @patch("builtins.input")
     def test_confirm_ask_with_group(self, mock_input):
-        io = InputOutput(pretty=False, fancy_input=False)
+        io = InputOutput(pretty=False, fancy_input=False, input_history_file=".history")
         group = ConfirmGroup()
 
         # Test case 1: No group preference, user selects 'All'
@@ -240,7 +270,9 @@ class TestInputOutput(unittest.TestCase):
         # Test case 5: explicit_yes_required=True, should not offer 'All' option
         group.preference = None
         mock_input.return_value = "y"
-        result = io.confirm_ask("Are you sure?", group=group, explicit_yes_required=True)
+        result = io.confirm_ask(
+            "Are you sure?", group=group, explicit_yes_required=True
+        )
         self.assertTrue(result)
         self.assertIsNone(group.preference)
         mock_input.assert_called_once()
@@ -249,7 +281,7 @@ class TestInputOutput(unittest.TestCase):
 
     @patch("builtins.input")
     def test_confirm_ask_yes_no(self, mock_input):
-        io = InputOutput(pretty=False, fancy_input=False)
+        io = InputOutput(pretty=False, fancy_input=False, input_history_file=".history")
 
         # Test case 1: User selects 'Yes'
         mock_input.return_value = "y"
@@ -303,7 +335,7 @@ class TestInputOutput(unittest.TestCase):
     @patch("builtins.input", side_effect=["d"])
     def test_confirm_ask_allow_never(self, mock_input):
         """Test the 'don't ask again' functionality in confirm_ask"""
-        io = InputOutput(pretty=False, fancy_input=False)
+        io = InputOutput(pretty=False, fancy_input=False, input_history_file=".history")
 
         # First call: user selects "Don't ask again"
         result = io.confirm_ask("Are you sure?", allow_never=True)
@@ -322,14 +354,18 @@ class TestInputOutput(unittest.TestCase):
         # Test with subject parameter
         mock_input.reset_mock()
         mock_input.side_effect = ["d"]
-        result = io.confirm_ask("Confirm action?", subject="Subject Text", allow_never=True)
+        result = io.confirm_ask(
+            "Confirm action?", subject="Subject Text", allow_never=True
+        )
         self.assertFalse(result)
         mock_input.assert_called_once()
         self.assertIn(("Confirm action?", "Subject Text"), io.never_prompts)
 
         # Subsequent call with the same question and subject
         mock_input.reset_mock()
-        result = io.confirm_ask("Confirm action?", subject="Subject Text", allow_never=True)
+        result = io.confirm_ask(
+            "Confirm action?", subject="Subject Text", allow_never=True
+        )
         self.assertFalse(result)
         mock_input.assert_not_called()
 
@@ -344,7 +380,7 @@ class TestInputOutput(unittest.TestCase):
 
 class TestInputOutputMultilineMode(unittest.TestCase):
     def setUp(self):
-        self.io = InputOutput(fancy_input=True)
+        self.io = InputOutput(fancy_input=True, input_history_file=".history")
         self.io.prompt_session = MagicMock()
 
     def test_toggle_multiline_mode(self):
@@ -362,7 +398,7 @@ class TestInputOutputMultilineMode(unittest.TestCase):
 
     def test_tool_message_unicode_fallback(self):
         """Test that Unicode messages are properly converted to ASCII with replacement"""
-        io = InputOutput(pretty=False, fancy_input=False)
+        io = InputOutput(pretty=False, fancy_input=False, input_history_file=".history")
 
         # Create a message with invalid Unicode that can't be encoded in UTF-8
         # Using a surrogate pair that's invalid in UTF-8
@@ -371,7 +407,10 @@ class TestInputOutputMultilineMode(unittest.TestCase):
         # Mock console.print to capture the output
         with patch.object(io.console, "print") as mock_print:
             # First call will raise UnicodeEncodeError
-            mock_print.side_effect = [UnicodeEncodeError("utf-8", "", 0, 1, "invalid"), None]
+            mock_print.side_effect = [
+                UnicodeEncodeError("utf-8", "", 0, 1, "invalid"),
+                None,
+            ]
 
             io._tool_message(invalid_unicode)
 
@@ -385,7 +424,7 @@ class TestInputOutputMultilineMode(unittest.TestCase):
 
     def test_multiline_mode_restored_after_interrupt(self):
         """Test that multiline mode is restored after KeyboardInterrupt"""
-        io = InputOutput(fancy_input=True)
+        io = InputOutput(fancy_input=True, input_history_file=".history")
         io.prompt_session = MagicMock()
 
         # Start in multiline mode
@@ -406,7 +445,7 @@ class TestInputOutputMultilineMode(unittest.TestCase):
 
     def test_multiline_mode_restored_after_normal_exit(self):
         """Test that multiline mode is restored after normal exit"""
-        io = InputOutput(fancy_input=True)
+        io = InputOutput(fancy_input=True, input_history_file=".history")
         io.prompt_session = MagicMock()
 
         # Start in multiline mode
@@ -453,7 +492,9 @@ class TestInputOutputMultilineMode(unittest.TestCase):
         from unittest.mock import patch
 
         # Create IO with hex color without # for tool_output_color
-        io = InputOutput(tool_output_color="FFA500", pretty=True)
+        io = InputOutput(
+            tool_output_color="FFA500", pretty=True, input_history_file=".history"
+        )
 
         # Patch console.print to avoid actual printing
         with patch.object(io.console, "print") as mock_print:
@@ -469,7 +510,9 @@ class TestInputOutputMultilineMode(unittest.TestCase):
             self.assertIn("style", kwargs)
 
         # Test with other hex color
-        io = InputOutput(tool_output_color="00FF00", pretty=True)
+        io = InputOutput(
+            tool_output_color="00FF00", pretty=True, input_history_file=".history"
+        )
         with patch.object(io.console, "print") as mock_print:
             io.tool_output("Test message")
             mock_print.assert_called_once()
@@ -479,7 +522,7 @@ class TestInputOutputMultilineMode(unittest.TestCase):
 @patch.dict(os.environ, {"NO_COLOR": ""})
 class TestInputOutputFormatFiles(unittest.TestCase):
     def test_format_files_for_input_pretty_false(self, mock_is_dumb_terminal):
-        io = InputOutput(pretty=False, fancy_input=False)
+        io = InputOutput(pretty=False, fancy_input=False, input_history_file=".history")
         rel_fnames = ["file1.txt", "file[markup].txt", "ro_file.txt"]
         rel_read_only_fnames = ["ro_file.txt"]
 
@@ -518,7 +561,7 @@ class TestInputOutputFormatFiles(unittest.TestCase):
     def test_format_files_for_input_pretty_true_no_files(
         self, mock_join, mock_abspath, mock_columns, mock_is_dumb_terminal
     ):
-        io = InputOutput(pretty=True, root="test_root")
+        io = InputOutput(pretty=True, root="test_root", input_history_file=".history")
         io.format_files_for_input([], [])
         mock_columns.assert_not_called()
 
@@ -528,7 +571,7 @@ class TestInputOutputFormatFiles(unittest.TestCase):
     def test_format_files_for_input_pretty_true_editable_only(
         self, mock_join, mock_abspath, mock_columns, mock_is_dumb_terminal
     ):
-        io = InputOutput(pretty=True, root="test_root")
+        io = InputOutput(pretty=True, root="test_root", input_history_file=".history")
         rel_fnames = ["edit1.txt", "edit[markup].txt"]
 
         io.format_files_for_input(rel_fnames, [])
@@ -549,11 +592,13 @@ class TestInputOutputFormatFiles(unittest.TestCase):
     def test_format_files_for_input_pretty_true_readonly_only(
         self, mock_join, mock_abspath, mock_columns, mock_is_dumb_terminal
     ):
-        io = InputOutput(pretty=True, root="test_root")
+        io = InputOutput(pretty=True, root="test_root", input_history_file=".history")
 
         # Mock path functions to ensure rel_path is chosen by the shortener logic
         mock_join.side_effect = lambda *args: "/".join(args)
-        mock_abspath.side_effect = lambda p: "/ABS_PREFIX_VERY_LONG/" + os.path.normpath(p)
+        mock_abspath.side_effect = (
+            lambda p: "/ABS_PREFIX_VERY_LONG/" + os.path.normpath(p)
+        )
 
         rel_read_only_fnames = ["ro1.txt", "ro[markup].txt"]
         # When all files in chat are read-only
@@ -579,10 +624,12 @@ class TestInputOutputFormatFiles(unittest.TestCase):
     def test_format_files_for_input_pretty_true_mixed_files(
         self, mock_join, mock_abspath, mock_columns, mock_is_dumb_terminal
     ):
-        io = InputOutput(pretty=True, root="test_root")
+        io = InputOutput(pretty=True, root="test_root", input_history_file=".history")
 
         mock_join.side_effect = lambda *args: "/".join(args)
-        mock_abspath.side_effect = lambda p: "/ABS_PREFIX_VERY_LONG/" + os.path.normpath(p)
+        mock_abspath.side_effect = (
+            lambda p: "/ABS_PREFIX_VERY_LONG/" + os.path.normpath(p)
+        )
 
         rel_fnames = ["edit1.txt", "edit[markup].txt", "ro1.txt", "ro[markup].txt"]
         rel_read_only_fnames = ["ro1.txt", "ro[markup].txt"]
@@ -602,7 +649,8 @@ class TestInputOutputFormatFiles(unittest.TestCase):
         args_ed, _ = mock_columns.call_args_list[2]
         renderables_ed = args_ed[0]
         self.assertEqual(
-            renderables_ed, [Text("Editable:"), Text("edit1.txt"), Text("edit[markup].txt")]
+            renderables_ed,
+            [Text("Editable:"), Text("edit1.txt"), Text("edit[markup].txt")],
         )
 
 

@@ -32,22 +32,22 @@ class TestModels(unittest.TestCase):
 
     def test_max_context_tokens(self):
         model = Model("gpt-3.5-turbo")
-        self.assertEqual(model.info["max_input_tokens"], 16385)
+        self.assertEqual(model.info.get("max_input_tokens"), 16385)
 
         model = Model("gpt-3.5-turbo-16k")
-        self.assertEqual(model.info["max_input_tokens"], 16385)
+        self.assertEqual(model.info.get("max_input_tokens"), 16385)
 
         model = Model("gpt-3.5-turbo-1106")
-        self.assertEqual(model.info["max_input_tokens"], 16385)
+        self.assertEqual(model.info.get("max_input_tokens"), 16385)
 
         model = Model("gpt-4")
-        self.assertEqual(model.info["max_input_tokens"], 8 * 1024)
+        self.assertEqual(model.info.get("max_input_tokens"), 8 * 1024)
 
         model = Model("gpt-4-32k")
-        self.assertEqual(model.info["max_input_tokens"], 32 * 1024)
+        self.assertEqual(model.info.get("max_input_tokens"), 32 * 1024)
 
         model = Model("gpt-4-0613")
-        self.assertEqual(model.info["max_input_tokens"], 8 * 1024)
+        self.assertEqual(model.info.get("max_input_tokens"), 8 * 1024)
 
     @patch("os.environ")
     def test_sanity_check_model_all_set(self, mock_environ):
@@ -100,7 +100,9 @@ class TestModels(unittest.TestCase):
         ]
         print("Warning messages:", warning_messages)  # Add this line
 
-        self.assertGreaterEqual(mock_io.tool_warning.call_count, 1)  # Expect two warnings
+        self.assertGreaterEqual(
+            mock_io.tool_warning.call_count, 1
+        )  # Expect two warnings
         self.assertTrue(
             any("bogus-model" in msg for msg in warning_messages)
         )  # Check that one of the warnings mentions the bogus model
@@ -203,14 +205,19 @@ class TestModels(unittest.TestCase):
 
         # Test with decimal value
         model.set_thinking_tokens("0.5M")
-        self.assertEqual(model.extra_params["thinking"]["budget_tokens"], 0.5 * 1024 * 1024)
+        self.assertEqual(
+            model.extra_params["thinking"]["budget_tokens"], 0.5 * 1024 * 1024
+        )
 
     @patch("aider.models.check_pip_install_extra")
     def test_check_for_dependencies_bedrock(self, mock_check_pip):
         """Test that check_for_dependencies calls check_pip_install_extra for Bedrock models"""
+        import tempfile
+
         from aider.io import InputOutput
 
-        io = InputOutput()
+        tmp = tempfile.NamedTemporaryFile(delete=False).name
+        io = InputOutput(input_history_file=tmp)
 
         # Test with a Bedrock model
         from aider.models import check_for_dependencies
@@ -225,9 +232,12 @@ class TestModels(unittest.TestCase):
     @patch("aider.models.check_pip_install_extra")
     def test_check_for_dependencies_vertex_ai(self, mock_check_pip):
         """Test that check_for_dependencies calls check_pip_install_extra for Vertex AI models"""
+        import tempfile
+
         from aider.io import InputOutput
 
-        io = InputOutput()
+        tmp = tempfile.NamedTemporaryFile(delete=False).name
+        io = InputOutput(input_history_file=tmp)
 
         # Test with a Vertex AI model
         from aider.models import check_for_dependencies
@@ -245,9 +255,12 @@ class TestModels(unittest.TestCase):
     @patch("aider.models.check_pip_install_extra")
     def test_check_for_dependencies_other_model(self, mock_check_pip):
         """Test that check_for_dependencies doesn't call check_pip_install_extra for other models"""
+        import tempfile
+
         from aider.io import InputOutput
 
-        io = InputOutput()
+        tmp = tempfile.NamedTemporaryFile(delete=False).name
+        io = InputOutput(input_history_file=tmp)
 
         # Test with a non-Bedrock, non-Vertex AI model
         from aider.models import check_for_dependencies
