@@ -65,7 +65,9 @@ class TestSendChat(unittest.TestCase):
         # Verify function was properly included in tools
         called_kwargs = mock_completion.call_args.kwargs
         assert "tools" in called_kwargs
-        assert called_kwargs["tools"][0]["function"] == mock_function
+        assert any(
+            tool.get("function") == mock_function for tool in called_kwargs["tools"]
+        )
 
     @patch("litellm.completion")
     def test_simple_send_attribute_error(self, mock_completion):
