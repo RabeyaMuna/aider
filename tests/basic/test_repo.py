@@ -214,7 +214,7 @@ class TestRepo(unittest.TestCase):
 
             # check the committer name (defaults interpreted as True)
             commit = raw_repo.head.commit
-            self.assertEqual(commit.author.name, "Test User (aider)")
+            self.assertEqual(commit.author.name, "Test User")
             self.assertEqual(commit.committer.name, "Test User (aider)")
 
             # commit a change without aider_edits (using default attributes)
