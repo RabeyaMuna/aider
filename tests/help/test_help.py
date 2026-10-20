@@ -1,6 +1,6 @@
 import time
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from requests.exceptions import ConnectionError, ReadTimeout
 
@@ -59,17 +59,21 @@ class TestHelp(unittest.TestCase):
         help_coder_run = MagicMock(return_value="")
         aider.coders.HelpCoder.run = help_coder_run
 
-        def run_help_command():
-            try:
-                commands.cmd_help("hi")
-            except aider.commands.SwitchCoder:
-                pass
-            else:
-                # If no exception was raised, fail the test
-                assert False, "SwitchCoder exception was not raised"
+        # Mock the installation of 'aider-chat[help]' extras to avoid dependency errors
+        with patch('aider.help.install_help_extras') as mock_install:
+            mock_install.return_value = None
 
-        # Use retry with backoff for the help command that loads models
-        cls.retry_with_backoff(run_help_command)
+            def run_help_command():
+                try:
+                    commands.cmd_help("hi")
+                except aider.commands.SwitchCoder:
+                    pass
+                else:
+                    # If no exception was raised, fail the test
+                    assert False, "SwitchCoder exception was not raised"
+
+            # Use retry with backoff for the help command that loads models
+            cls.retry_with_backoff(run_help_command)
 
         help_coder_run.assert_called_once()
 
