@@ -66,7 +66,7 @@ class TestHelp(unittest.TestCase):
                 pass
             else:
                 # If no exception was raised, fail the test
-                assert False, "SwitchCoder exception was not raised"
+                raise AssertionError("SwitchCoder exception was not raised")
 
         # Use retry with backoff for the help command that loads models
         cls.retry_with_backoff(run_help_command)
