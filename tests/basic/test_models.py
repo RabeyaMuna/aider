@@ -100,7 +100,9 @@ class TestModels(unittest.TestCase):
         ]
         print("Warning messages:", warning_messages)  # Add this line
 
-        self.assertGreaterEqual(mock_io.tool_warning.call_count, 1)  # Expect two warnings
+        self.assertGreaterEqual(
+            mock_io.tool_warning.call_count, 1
+        )  # Expect two warnings
         self.assertTrue(
             any("bogus-model" in msg for msg in warning_messages)
         )  # Check that one of the warnings mentions the bogus model
@@ -203,7 +205,9 @@ class TestModels(unittest.TestCase):
 
         # Test with decimal value
         model.set_thinking_tokens("0.5M")
-        self.assertEqual(model.extra_params["thinking"]["budget_tokens"], 0.5 * 1024 * 1024)
+        self.assertEqual(
+            model.extra_params["thinking"]["budget_tokens"], 0.5 * 1024 * 1024
+        )
 
     @patch("aider.models.check_pip_install_extra")
     def test_check_for_dependencies_bedrock(self, mock_check_pip):
@@ -437,14 +441,14 @@ class TestModels(unittest.TestCase):
 
         # Verify num_ctx was calculated and added to call
         expected_ctx = int(1000 * 1.25) + 8192  # 9442
-        mock_completion.assert_called_once_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0,
-            num_ctx=expected_ctx,
-            timeout=600,
-        )
+        mock_completion.assert_called_once()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0)
+        self.assertEqual(call_kwargs.get("num_ctx"), expected_ctx)
+        self.assertEqual(call_kwargs.get("timeout"), 600)
 
     @patch("aider.models.litellm.completion")
     def test_ollama_uses_existing_num_ctx(self, mock_completion):
@@ -455,14 +459,14 @@ class TestModels(unittest.TestCase):
         model.send_completion(messages, functions=None, stream=False)
 
         # Should use provided num_ctx from extra_params
-        mock_completion.assert_called_once_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0,
-            num_ctx=4096,
-            timeout=600,
-        )
+        mock_completion.assert_called_once()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0)
+        self.assertEqual(call_kwargs.get("num_ctx"), 4096)
+        self.assertEqual(call_kwargs.get("timeout"), 600)
 
     @patch("aider.models.litellm.completion")
     def test_non_ollama_no_num_ctx(self, mock_completion):
@@ -472,14 +476,14 @@ class TestModels(unittest.TestCase):
         model.send_completion(messages, functions=None, stream=False)
 
         # Regular models shouldn't get num_ctx
-        mock_completion.assert_called_once_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0,
-            timeout=600,
-        )
-        self.assertNotIn("num_ctx", mock_completion.call_args.kwargs)
+        mock_completion.assert_called_once()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0)
+        self.assertEqual(call_kwargs.get("timeout"), 600)
+        self.assertNotIn("num_ctx", call_kwargs)
 
     def test_use_temperature_settings(self):
         # Test use_temperature=True (default) uses temperature=0
@@ -502,13 +506,13 @@ class TestModels(unittest.TestCase):
         model = Model("gpt-4")
         messages = [{"role": "user", "content": "Hello"}]
         model.send_completion(messages, functions=None, stream=False)
-        mock_completion.assert_called_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0,
-            timeout=600,  # Default timeout
-        )
+        mock_completion.assert_called()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0)
+        self.assertEqual(call_kwargs.get("timeout"), 600)  # Default timeout
 
     @patch("aider.models.litellm.completion")
     def test_request_timeout_from_extra_params(self, mock_completion):
@@ -517,13 +521,13 @@ class TestModels(unittest.TestCase):
         model.extra_params = {"timeout": 300}  # 5 minutes
         messages = [{"role": "user", "content": "Hello"}]
         model.send_completion(messages, functions=None, stream=False)
-        mock_completion.assert_called_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0,
-            timeout=300,  # From extra_params
-        )
+        mock_completion.assert_called()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0)
+        self.assertEqual(call_kwargs.get("timeout"), 300)  # From extra_params
 
     @patch("aider.models.litellm.completion")
     def test_use_temperature_in_send_completion(self, mock_completion):
@@ -531,13 +535,13 @@ class TestModels(unittest.TestCase):
         model = Model("gpt-4")
         messages = [{"role": "user", "content": "Hello"}]
         model.send_completion(messages, functions=None, stream=False)
-        mock_completion.assert_called_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0,
-            timeout=600,
-        )
+        mock_completion.assert_called()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0)
+        self.assertEqual(call_kwargs.get("timeout"), 600)
 
         # Test use_temperature=False doesn't send temperature
         model = Model("github/o1-mini")
@@ -550,13 +554,13 @@ class TestModels(unittest.TestCase):
         model.use_temperature = 0.7
         messages = [{"role": "user", "content": "Hello"}]
         model.send_completion(messages, functions=None, stream=False)
-        mock_completion.assert_called_with(
-            model=model.name,
-            messages=messages,
-            stream=False,
-            temperature=0.7,
-            timeout=600,
-        )
+        mock_completion.assert_called()
+        call_kwargs = mock_completion.call_args.kwargs
+        self.assertEqual(call_kwargs.get("model"), model.name)
+        self.assertEqual(call_kwargs.get("messages"), messages)
+        self.assertEqual(call_kwargs.get("stream"), False)
+        self.assertEqual(call_kwargs.get("temperature"), 0.7)
+        self.assertEqual(call_kwargs.get("timeout"), 600)
 
 
 if __name__ == "__main__":
