@@ -76,15 +76,17 @@ def with_history_disabled(func):
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        orig_buf_append = self.prompt_session.default_buffer.append_to_history
-        self.prompt_session.default_buffer.append_to_history = lambda: None  # Replace with no-op
+        if self.prompt_session is not None:
+            orig_buf_append = self.prompt_session.default_buffer.append_to_history
+            self.prompt_session.default_buffer.append_to_history = lambda: None  # Replace with no-op
 
         try:
             return func(self, *args, **kwargs)
         except Exception:
             raise
         finally:
-            self.prompt_session.default_buffer.append_to_history = orig_buf_append
+            if self.prompt_session is not None:
+                self.prompt_session.default_buffer.append_to_history = orig_buf_append
 
     return wrapper
 
