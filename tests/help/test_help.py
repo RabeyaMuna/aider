@@ -1,6 +1,6 @@
 import time
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from requests.exceptions import ConnectionError, ReadTimeout
 
@@ -69,7 +69,8 @@ class TestHelp(unittest.TestCase):
                 assert False, "SwitchCoder exception was not raised"
 
         # Use retry with backoff for the help command that loads models
-        cls.retry_with_backoff(run_help_command)
+        with patch("aider.commands.install_help_extra", return_value=True):
+            cls.retry_with_backoff(run_help_command)
 
         help_coder_run.assert_called_once()
 
