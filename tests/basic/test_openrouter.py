@@ -39,8 +39,8 @@ def test_openrouter_get_model_info_from_cache(monkeypatch, tmp_path):
     info = manager.get_model_info("openrouter/mistralai/mistral-medium-3")
 
     assert info["max_input_tokens"] == 32768
-    assert info["input_cost_per_token"] == 0.0001
-    assert info["output_cost_per_token"] == 0.0002
+    assert info["input_cost_per_token"] == 100.0
+    assert info["output_cost_per_token"] == 200.0
     assert info["litellm_provider"] == "openrouter"
 
 

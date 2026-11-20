@@ -1316,8 +1316,12 @@ class Commands:
                 # For absolute paths, glob it
                 matches = list(glob.glob(expanded_pattern))
             else:
-                # For relative paths and globs, use glob from the root directory
-                matches = list(Path(self.coder.root).glob(expanded_pattern))
+                # For relative paths, first try direct path, then fall back to glob
+                direct_path = Path(self.coder.root) / expanded_pattern
+                if direct_path.exists():
+                    matches = [direct_path]
+                else:
+                    matches = list(Path(self.coder.root).glob(expanded_pattern))
 
             if not matches:
                 self.io.tool_error(f"No matches found for: {pattern}")
