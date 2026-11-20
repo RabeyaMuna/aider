@@ -1310,7 +1310,9 @@ class Commands:
                 matches = list(glob.glob(expanded_pattern))
             else:
                 # For relative paths and globs, use glob from the root directory
-                matches = list(Path(self.coder.root).glob(expanded_pattern))
+                # Use glob.glob with the full path to properly handle .. in paths
+                full_pattern = str(Path(self.coder.root) / expanded_pattern)
+                matches = list(glob.glob(full_pattern))
 
             if not matches:
                 self.io.tool_error(f"No matches found for: {pattern}")

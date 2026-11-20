@@ -76,6 +76,7 @@ def with_history_disabled(func):
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
+        orig_buf_append = None
         try:
             orig_buf_append = self.prompt_session.default_buffer.append_to_history
             self.prompt_session.default_buffer.append_to_history = (
