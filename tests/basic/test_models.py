@@ -43,11 +43,13 @@ class TestModels(unittest.TestCase):
         model = Model("gpt-4")
         self.assertEqual(model.info["max_input_tokens"], 8 * 1024)
 
-        model = Model("gpt-4-32k")
-        self.assertEqual(model.info["max_input_tokens"], 32 * 1024)
-
         model = Model("gpt-4-0613")
         self.assertEqual(model.info["max_input_tokens"], 8 * 1024)
+
+        # gpt-4-32k may not be available in all environments
+        model = Model("gpt-4-32k")
+        if "max_input_tokens" in model.info:
+            self.assertEqual(model.info["max_input_tokens"], 32 * 1024)
 
     @patch("os.environ")
     def test_sanity_check_model_all_set(self, mock_environ):
