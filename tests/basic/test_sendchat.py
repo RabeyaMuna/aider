@@ -59,7 +59,7 @@ class TestSendChat(unittest.TestCase):
         mock_function = {"name": "test_function", "parameters": {"type": "object"}}
 
         hash_obj, response = Model(self.mock_model).send_completion(
-            self.mock_messages, functions=[mock_function], stream=False
+            self.mock_messages, tools=[{"type": "function", "function": mock_function}], stream=False
         )
 
         # Verify function was properly included in tools

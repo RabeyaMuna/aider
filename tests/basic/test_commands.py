@@ -952,6 +952,10 @@ class TestCommands(TestCase):
                                 if "test_image.jpg" in item.get("text", ""):
                                     found_image = True
                                     break
+                            elif isinstance(item, dict) and item.get("type") == "image_url":
+                                if "test_image.jpg" in item.get("image_url", ""):
+                                    found_image = True
+                                    break
             self.assertTrue(found_image, "Image file not found in messages to LLM")
 
     def test_cmd_read_only_with_glob_pattern(self):
