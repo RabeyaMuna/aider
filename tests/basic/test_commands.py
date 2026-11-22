@@ -537,7 +537,6 @@ class TestCommands(TestCase):
             from aider.coders import Coder
 
             coder = Coder.create(Model("claude-3-5-sonnet-20240620"), None, io)
-            print(coder.get_announcements())
             commands = Commands(io, coder)
 
             commands.cmd_add("*.txt")
