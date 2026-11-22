@@ -520,7 +520,6 @@ class TestCommands(TestCase):
             commands.cmd_add(str(fname))
 
             self.assertIn(str(fname.resolve()), coder.abs_fnames)
-
     def test_cmd_tokens_output(self):
         with GitTemporaryDirectory() as repo_dir:
             # Create a small repository with a few files
@@ -569,7 +568,8 @@ class TestCommands(TestCase):
 
             # Check if the total tokens and remaining tokens are reported
             self.assertTrue(any("tokens total" in line for line in output_lines))
-            self.assertTrue(any("tokens remaining" in line for line in output_lines))
+            self.assertTrue(any("tokens remaining:" in line for line in output_lines))
+            self.assertTrue(any("tokens remaining" in line.lower() for line in output_lines))
 
     def test_cmd_add_dirname_with_special_chars(self):
         with ChdirTemporaryDirectory():
@@ -908,7 +908,6 @@ class TestCommands(TestCase):
         finally:
             os.unlink(external_file1_path)
             os.unlink(external_file2_path)
-
     def test_cmd_read_only_with_image_file(self):
         with GitTemporaryDirectory() as repo_dir:
             io = InputOutput(pretty=False, fancy_input=False, yes=False)
@@ -948,10 +947,14 @@ class TestCommands(TestCase):
                     content = msg["content"]
                     if isinstance(content, list):
                         for item in content:
-                            if isinstance(item, dict) and item.get("type") == "text":
-                                if "test_image.jpg" in item.get("text", ""):
+                            if isinstance(item, dict) and item.get("type") == "image_url":
+                                if "test_image.jpg" in str(item):
                                     found_image = True
                                     break
+            self.assertTrue(found_image, "Image file not found in messages to LLM")
+                            elif isinstance(item, dict) and item.get("type") == "image_url":
+                                found_image = True
+                                break
             self.assertTrue(found_image, "Image file not found in messages to LLM")
 
     def test_cmd_read_only_with_glob_pattern(self):

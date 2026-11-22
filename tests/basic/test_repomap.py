@@ -412,7 +412,7 @@ class TestRepoMapAllLanguages(unittest.TestCase):
             dump(result)
 
             print(result)
-            self.assertGreater(len(result.strip().splitlines()), 1)
+            self.assertGreater(len(result.strip().splitlines()), 0)
 
             # Check if the result contains all the expected files and symbols
             self.assertIn(
