@@ -569,7 +569,7 @@ class TestCommands(TestCase):
 
             # Check if the total tokens and remaining tokens are reported
             self.assertTrue(any("tokens total" in line for line in output_lines))
-            self.assertTrue(any("tokens remaining" in line for line in output_lines))
+            self.assertTrue(any("tokens remaining:" in line for line in output_lines))
 
     def test_cmd_add_dirname_with_special_chars(self):
         with ChdirTemporaryDirectory():
@@ -934,7 +934,8 @@ class TestCommands(TestCase):
                 any(
                     os.path.samefile(str(test_file), fname)
                     for fname in vision_coder.abs_read_only_fnames
-                )
+                ),
+                f"File {str(test_file)} not found in {vision_coder.abs_read_only_fnames}"
             )
 
             # Add a dummy message to ensure format_messages() works
@@ -1072,7 +1073,8 @@ class TestCommands(TestCase):
                 any(
                     os.path.samefile(str(test_file.resolve()), fname)
                     for fname in coder.abs_read_only_fnames
-                )
+                ),
+                f"File {str(test_file.resolve())} not found in {coder.abs_read_only_fnames}"
             )
 
             # Try to add the read-only file
@@ -1086,7 +1088,8 @@ class TestCommands(TestCase):
                 any(
                     os.path.samefile(str(test_file.resolve()), fname)
                     for fname in coder.abs_read_only_fnames
-                )
+                ),
+                f"File {str(test_file.resolve())} not found in {coder.abs_read_only_fnames}"
             )
 
             repo = git.Repo()
@@ -2147,7 +2150,6 @@ class TestCommands(TestCase):
             # Assertions for /reset
             self.assertEqual(len(new_coder.abs_fnames), 0)
             self.assertEqual(len(new_coder.abs_read_only_fnames), 1)
-            # self.assertIn(str(orig_ro_path), new_coder.abs_read_only_fnames)
             self.assertTrue(
                 any(os.path.samefile(p, str(orig_ro_path)) for p in new_coder.abs_read_only_fnames),
                 f"File {str(orig_ro_path)} not found in {new_coder.abs_read_only_fnames}",
@@ -2190,7 +2192,6 @@ class TestCommands(TestCase):
 
             self.assertEqual(len(new_coder.abs_fnames), 0)
             self.assertEqual(len(new_coder.abs_read_only_fnames), 1)
-            # self.assertIn(str(orig_ro_path), new_coder.abs_read_only_fnames)
             self.assertTrue(
                 any(os.path.samefile(p, str(orig_ro_path)) for p in new_coder.abs_read_only_fnames),
                 f"File {str(orig_ro_path)} not found in {new_coder.abs_read_only_fnames}",

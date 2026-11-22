@@ -412,7 +412,7 @@ class TestRepoMapAllLanguages(unittest.TestCase):
             dump(result)
 
             print(result)
-            self.assertGreater(len(result.strip().splitlines()), 1)
+            self.assertGreater(len(result.strip().splitlines()), 1, f"Repo map output for {lang} has insufficient lines: {result}")
 
             # Check if the result contains all the expected files and symbols
             self.assertIn(
