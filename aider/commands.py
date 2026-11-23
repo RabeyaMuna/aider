@@ -29,6 +29,7 @@ from .dump import dump  # noqa: F401
 
 class SwitchCoder(Exception):
     def __init__(self, placeholder=None, **kwargs):
+        super().__init__()
         self.kwargs = kwargs
         self.placeholder = placeholder
 
